@@ -33,4 +33,4 @@ Flask_SQLAlchemy: https://github.com/sqlalchemy/sqlalchemy/
 Flask_Migrate: https://flask-migrate.readthedocs.io/en/latest/
 
 Flask_CSRF: https://flask-wtf.readthedocs.io/en/v0.12/csrf.html
-
+ 
