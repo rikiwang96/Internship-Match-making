@@ -1,0 +1,44 @@
+<!--
+This HTML file is used for hosts.
+
+This file contains the matching results, and hosts can invite suitable students through this file.
+
+This file is used with '_matched_students.html' file.
+-->
+{% extends "base.html" %}
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>Host: {{ current_user.username }}</h1>
+                <h3>Please Ensure Your Information</h3>
+                {% if current_user.address %}<p>{{ current_user.address }}</p>{% endif %}
+                {% if current_user.last_seen %}
+                    <p>Last seen on: {{ moment(current_user.last_seen).format('LLL') }}</p>
+                {% endif %}
+                <p><a href="{{ url_for('viewApplication',hostname = current_user.username) }}" class="btn btn-primary"
+                      role="button">View Application</a></p>
+            </td>
+        </tr>
+    </table>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Education Level</th>
+            <th>Major</th>
+            <th>Match Rate %</th>
+            <th></th>
+        </tr>
+        </thead>
+        {% for stu in students %}
+            {% include '_matched_students.html' %}
+        {% endfor %}
+    </table>
+    <p><a href="{{ url_for('host_confirmation',hostname=current_user.username) }}" class="btn btn-primary"
+          role="button">Back</a></p>
+{% endblock %}

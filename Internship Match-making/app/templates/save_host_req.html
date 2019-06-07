@@ -1,0 +1,59 @@
+<!--
+This HTML file is used for hosts.
+This file render the hosts' requirement template and this file contain dynamic cascade selection.
+(Field category, Internship Category/ Nation & State & City of the workplace)
+-->
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% block app_content %}
+    <h1>Internship Requirements</h1>
+    <div class="row">
+        <div class="col-md-8">
+            {{ wtf.quick_form(form) }}
+            <script>
+                let field_select = document.getElementById('field_category')
+                let internship_select = document.getElementById('internship_category')
+                field_select.onchange = function () {
+                    field = field_select.value;
+                    fetch('/host_internship_category/' + field).then(function (response) {
+                        response.json().then(function (data) {
+                            let optionHTML = ''
+                            for (let internship_category of data.internship_categories) {
+                                optionHTML += '<option value="' + internship_category.name + '">' + internship_category.name + '</option>';
+                            }
+                            internship_select.innerHTML = optionHTML;
+                        })
+                    })
+                };
+                let nation_select = document.getElementById('workplace_nation')
+                let state_select = document.getElementById('workplace_state')
+                let city_select = document.getElementById('workplace_city')
+                nation_select.onchange = function () {
+                    nation = nation_select.value;
+                    fetch('/nation_state/' + nation).then(function (response) {
+                        response.json().then(function (data) {
+                            let optionHTML1 = ''
+                            for (let state of data.states) {
+                                optionHTML1 += '<option value="' + state.name + '">' + state.name + '</option>';
+                            }
+                            state_select.innerHTML = optionHTML1;
+                        })
+                    })
+                };
+                state_select.onchange = function () {
+                    state = state_select.value;
+                    fetch('/state_city/' + state).then(function (response) {
+                        response.json().then(function (data) {
+                            let optionHTML2 = ''
+                            for (let city of data.cities) {
+                                optionHTML2 += '<option value="' + city.name + '">' + city.name + '</option>';
+                            }
+                            city_select.innerHTML = optionHTML2;
+                        })
+                    })
+                };
+
+            </script>
+        </div>
+    </div>
+{% endblock %}

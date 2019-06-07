@@ -1,0 +1,46 @@
+<!--
+This HTML file is used for students.
+
+This file contains the matching results, and students can apply suitable internships through this file.
+
+Students can also check their invitations through this file.
+
+This file is used with '_host.html' file.
+-->
+{% extends "base.html" %}
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>User: {{ current_user.username }}</h1>
+                <h3>Please Ensure Your Information</h3>
+                {% if current_user.address %}<p>{{ current_user.address }}</p>{% endif %}
+                {% if current_user.last_seen %}
+                    <p>Last seen on: {{ moment(current_user.last_seen).format('LLL') }}</p>
+                {% endif %}
+                <p><a href="{{ url_for('viewInvitation',username = current_user.username) }}" class="btn btn-primary"
+                      role="button">View Invitation</a></p>
+            </td>
+        </tr>
+    </table>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Host Name</th>
+            <th>State</th>
+            <th>City</th>
+            <th>Internship Name</th>
+            <th>Field Category</th>
+            <th>Salary per Week</th>
+            <th>Workdays per Week</th>
+            <th>Match Rate %</th>
+        </tr>
+        </thead>
+        {% for stu in students %}
+            {% include '_host.html' %}
+        {% endfor %}
+    </table>
+    <p><a href="{{ url_for('confirm_information') }}" class="btn btn-primary" role="button">Back</a>
+
+{% endblock %}

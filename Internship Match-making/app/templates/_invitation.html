@@ -1,0 +1,19 @@
+<!--
+On this page, students can act on the employer’s invitation, accept, reject, or view employer information.
+-->
+        <tr><td>
+                {{ stu.internship_name }}
+            </td>
+            <td>
+                {{ stu.stu_username }}
+            </td>
+            <td>
+                {{ stu.hostname }}
+            </td>
+
+            <td>
+                <a href="{{ url_for('acceptInvitation',invitation_id = stu.id) }}" class="btn btn-primary" role="button">Accept</a>
+                <a href="{{ url_for('internship_details',internship_id=stu.internship_id) }}" class="btn btn-primary" role="button">Check Details</a>
+                <a href="{{ url_for('cancelInvitation',invitation_id=stu.id) }}" class="btn btn-primary" role="button">Reject</a>
+            </td>
+        </tr>

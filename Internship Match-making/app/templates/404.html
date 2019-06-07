@@ -1,0 +1,10 @@
+<!--
+This HTML file shows the 404 page when the relevant path could not be found,
+it will be routed to the "index" page.
+-->
+{% extends "base.html" %}
+
+{% block app_content %}
+    <h1>Not Found</h1>
+    <p><a href="{{ url_for('index') }}">Back</a></p>
+{% endblock %}

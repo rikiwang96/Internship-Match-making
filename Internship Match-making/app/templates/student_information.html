@@ -1,0 +1,54 @@
+<!--
+This HTML is used for students.
+
+This is renter students' information confirmation page.
+
+This file is used with '_stu_req1.html' and '_stu_req2.html'
+-->
+{% extends "base.html" %}
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>Host: {{ current_user.username }}</h1>
+                <h3>Please Check the information of the student</h3>
+                {% if current_user.address %}<p>{{ current_user.address }}</p>{% endif %}
+                {% if current_user.last_seen %}
+                    <p>Last seen on: {{ moment(current_user.last_seen).format('LLL') }}</p>
+                {% endif %}
+            </td>
+        </tr>
+    </table>.
+
+    <table class="table table-hover" style="TABLE-LAYOUT: fixed" >
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Education Level</th>
+            <th>Major</th>
+            <th>Work Experience</th>
+        </tr>
+        </thead>
+    {% for stu in students %}
+            {% include '_stu_req1.html' %}
+        {% endfor %}
+
+        <thead>
+        <tr>
+            <th>Salary per Week</th>
+            <th>Country Preferred</th>
+            <th>State Preferred</th>
+            <th>City Preferred</th>
+            <th>Visa</th>
+            <th>Language</th>
+        </tr>
+        </thead>
+        {% for stu in students %}
+            {% include '_stu_req2.html' %}
+        {% endfor %}
+    </table>
+    <p><a href="{{ url_for('viewApplication',hostname=current_user.username) }}" class="btn btn-primary" role="button">Back</a>
+{% endblock %}

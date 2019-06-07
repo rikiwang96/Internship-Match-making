@@ -1,0 +1,46 @@
+<!--
+This HTML file is used for students.
+This file render the students' requirement template and this file contain dynamic cascade selection.
+( Nation & State & City of the workplace)
+-->
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+{% block app_content %}
+    <body>
+    <h1>Student Requirement</h1>
+    <div class="row">
+        <div class="col-md-8">
+            {{ wtf.quick_form(form) }}
+            <script>
+                let nation_select = document.getElementById('workplace_nation')
+                let state_select = document.getElementById('workplace_state')
+                let city_select = document.getElementById('workplace_city')
+                nation_select.onchange = function () {
+                    nation = nation_select.value;
+                    fetch('/nation_state/' + nation).then(function (response) {
+                        response.json().then(function (data) {
+                            let optionHTML1 = ''
+                            for (let state of data.states) {
+                                optionHTML1 += '<option value="' + state.name + '">' + state.name + '</option>';
+                            }
+                            state_select.innerHTML = optionHTML1;
+                        })
+                    })
+                };
+                state_select.onchange = function () {
+                    state = state_select.value;
+                    fetch('/state_city/' + state).then(function (response) {
+                        response.json().then(function (data) {
+                            let optionHTML2 = ''
+                            for (let city of data.cities) {
+                                optionHTML2 += '<option value="' + city.name + '">' + city.name + '</option>';
+                            }
+                            city_select.innerHTML = optionHTML2
+                        })
+                    })
+                };
+            </script>
+        </div>
+    </div>
+    </body>
+{% endblock %}

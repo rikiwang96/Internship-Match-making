@@ -1,0 +1,39 @@
+<!--
+This page shows the matching results obtained by the students.
+
+If there is a result, the student can choose to apply for an internship.
+
+This page contains hostname, state&city of the workplace, internship name,
+field category,salary, workdays and the match rate.
+-->
+        <tr>
+            <td>
+                {{ stu[0].hostname }}
+            </td>
+            <td>
+                {{ stu[0].workplace_state }}
+            </td>
+            <td>
+                {{ stu[0].workplace_city }}
+            </td>
+            <td>
+                {{ stu[0].internship_name }}
+            </td>
+            <td>
+                {{ stu[0].field_category }}
+            </td>
+            <td>
+                {{ stu[0].salary }}
+            </td>
+            <td>
+                {{ stu[0].workdays }}
+            </td>
+            <td>
+                {{ stu[1] }}
+            </td>
+            <td>
+                <a href="{{ url_for('apply',internship_id=stu[0].id,match_rate=stu[1]) }}" class="btn btn-primary" role="button">Apply</a>
+            </td>
+
+        </tr>
+

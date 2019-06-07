@@ -1,0 +1,45 @@
+<!--
+This HTML file is used for students and hosts.
+
+Students and hosts can click the "ViewMatch" button defined in the "base.html", and check the final results.
+
+This file is used with '_matched_result.html' .
+-->
+
+{% extends "base.html" %}
+
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>{{ current_user.role }}: {{ current_user.username }}</h1>
+
+                <h3>Number of Matches:  {{ students|count }}</h3>
+            </td>
+        </tr>
+    </table>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th>Internship Name</th>
+            <th>Student Name</th>
+            <th>Host Name</th>
+             {% if current_user.role=='Host' %}
+            <th>Match Rate %</th>
+            {% endif %}
+        </tr>
+        </thead>
+        {% for stu in students %}
+            {% include '_matched_result.html' %}
+        {% endfor %}
+    </table>
+    <tr>
+        {% if current_user.role=='Student' %}
+            <p><a href="{{ url_for('confirm_information') }}" class="btn btn-primary" role="button">Back</a></p>
+        {% else %}
+            <p><a href="{{ url_for('host_confirmation',hostname=current_user.username)}}" class="btn btn-primary" role="button">Back</a></p>
+        {% endif %}
+    </tr>
+
+{% endblock %}

@@ -1,0 +1,60 @@
+<!--
+This HTML file is used for students.
+
+This file contains internships' information invited by hosts.
+
+This file is used with  '_internship_det1.html'.
+-->
+
+{% extends "base.html" %}
+
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>User: {{ current_user.username }}</h1>
+                <h3>Please Check the details of the internship</h3>
+                {% if current_user.address %}<p>{{ current_user.address }}</p>{% endif %}
+                {% if current_user.last_seen %}
+                    <p>Last seen on: {{ moment(current_user.last_seen).format('LLL') }}</p>
+                {% endif %}
+            </td>
+        </tr>
+    </table>.
+    <table class="table table-hover" style="TABLE-LAYOUT: fixed" >
+            <thead>
+            <tr>
+                    <th>Hostname</th>
+                    <th>Internship Name</th>
+                    <th>Category</th>
+                    <th>Education Requirement</th>
+                    <th>Salary Per Week</th>
+                    <th>Workdays Per Week</th>
+            </tr>
+            </thead>
+        {% for stu in students %}
+                {% include '_internship_det1.html' %}
+            {% endfor %}
+
+            <thead>
+            <tr>
+                <th>Country</th>
+                <th>Country Preferred</th>
+                <th>State Preferred</th>
+                <th>City Preferred</th>
+                <th>Offer Job</th>
+                <th>Visa Requirement</th>
+            </tr>
+            </thead>
+            {% for stu in students %}
+                {% include '_internship_det2.html' %}
+            {% endfor %}
+        </table>
+{% if current_user.role=="Host" %}
+    <p><a href="{{ url_for('save_host_req',intern_name=students[0].internship_name) }}" class="btn btn-primary" role="button">Back</a></p>
+{% else %}
+        <p><a href="{{ url_for('viewInvitation',username=current_user.username )}}" class="btn btn-primary" role="button">Back</a></p>
+    {% endif %}
+
+{% endblock %}

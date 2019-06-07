@@ -1,0 +1,25 @@
+<!--
+This page shows the employer's view of the student's application for the internship
+and the option to agree or reject based on the student's information.
+
+This page contains internship name, student name, hostname and the match rate.
+-->
+        <tr><td>
+                {{ stu.internship_name }}
+            </td>
+
+            <td>
+                {{ stu.stu_username }}
+            </td>
+            <td>
+                {{ stu.hostname }}
+            </td>
+            <td>
+                {{ stu.match_rate }}
+            </td>
+            <td>
+                <a href="{{ url_for('acceptApplication',application_id=stu.id) }}" class="btn btn-primary" role="button">Accept</a>
+                <a href="{{ url_for('student_details',username=stu.stu_username) }}" class="btn btn-primary" role="button">Check Details</a>
+                <a href="{{ url_for('cancelApplication',application_id=stu.id) }}" class="btn btn-primary" role="button">Reject</a>
+            </td>
+        </tr>

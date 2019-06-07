@@ -1,0 +1,32 @@
+<!--
+These are the fields of basic information contained in internships published by employers.
+
+In this page, employers can edit or find matching results by clicking corresponding buttons.
+-->
+<tr>
+            <td>
+                {{ requirement.hostname }}
+            </td>
+            <td>
+                {{ requirement.internship_name }}
+            </td>
+            <td>
+                {{ requirement.internship_category }}
+            </td>
+            <td>
+                {{ requirement.age }}
+            </td>
+            <td>
+                {{ requirement.education_requirement }}
+            </td>
+            <td>
+                {{ requirement.gender_requirement }}
+            </td>
+            <td>
+                {{ requirement.major }}
+            </td>
+            <td>
+                <a href="{{ url_for('save_host_req',intern_name=requirement.internship_name,req_id = requirement.id) }}" class="btn btn-primary" role="button">Edit</a>
+                <a href="{{ url_for('matchedUsers',req_id=requirement.id) }}" class="btn btn-primary" role="button">Match</a>
+            </td>
+        </tr>

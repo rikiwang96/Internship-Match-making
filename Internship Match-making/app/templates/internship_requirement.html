@@ -1,0 +1,45 @@
+<!--
+This HTML file is used for hosts.
+
+This file contains internship fields and hosts can add new internships, view application and edit their introduction.
+
+This file is used with '_internship_requirements.html' .
+-->
+
+{% extends "base.html" %}
+
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td width="256px"><img src="{{ current_user.avatar(256) }}"></td>
+            <td>
+                <h1>Host: {{ current_user.username }}</h1>
+                <h2>Please Confirm Your Requirement</h2>
+               {% if current_user.last_seen %}
+               <p>Last seen on: {{ moment(current_user.last_seen).format('LLL') }}</p>
+               {% endif %}
+                <p><a href="{{ url_for('viewApplication',hostname = current_user.username) }}" class="btn btn-primary" role="button">View Application</a></p>
+              <p><a href="{{ url_for('add_host',hostname=current_user.username) }}"class="btn btn-primary" role="button">Edit Introduction</a></p>
+            </td>
+        </tr>
+    </table>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Hostname</th>
+                <th>Internship Name</th>
+                <th>Internship Category</th>
+                <th>Age</th>
+                <th>Education Requirement</th>
+                <th>Gender Requirement</th>
+                <th>Major</th>
+                <th></th>
+            </tr>
+        </thead>
+        {% for requirement in requirements %}
+            {% include '_internship_requirements.html' %}
+        {% endfor %}
+    </table>
+  <p><a href="{{ url_for('save_host_req',intern_name='a_totally_new_page') }}" class="btn btn-primary" role="button">Add New Requirement</a></p>
+
+{% endblock %}

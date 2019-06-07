@@ -1,0 +1,18 @@
+<!--
+This is the administrator page.
+-->
+{% extends "base.html" %}
+
+{% block app_content %}
+    <table class="table table-hover">
+        <tr>
+            <td>
+                <h1>Administrator: {{ administrator.username }}</h1>
+                {% if administrator.address %}<p>{{ administrator.address }}</p>{% endif %}
+                {% if administrator.last_seen %}
+                <p>Last seen on: {{ moment(administrator.last_seen).format('LLL') }}</p>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+{% endblock %}

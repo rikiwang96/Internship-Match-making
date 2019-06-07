@@ -1,0 +1,30 @@
+<!--
+This page is students information that the employer matches,
+and the employer can invite students.
+-->
+        <tr>
+            <td>
+                {{ stu[0].username }}
+            </td>
+            <td>
+                {{ stu[0].email }}
+            </td>
+            <td>
+                {{ stu[0].gender }}
+            </td>
+            <td>
+                {{ stu[0].age }}
+            </td>
+            <td>
+                {{ stu[0].education_level }}
+            </td>
+            <td>
+                {{ stu[0].major }}
+            </td>
+            <td>
+                {{ stu[2] }}
+            </td>
+            <td>
+                <a href="{{ url_for('invite',username = stu[0].username, internship_id = stu[1], match_rate=stu[2]) }}" class="btn btn-primary" role="button">Invite</a>
+            </td>
+        </tr>

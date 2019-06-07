@@ -1,0 +1,9 @@
+Dear {{ user.username }},
+
+Friendly remind you:
+
+You get a match making.
+
+Sincerely,
+
+Internship MatchMaking Team
