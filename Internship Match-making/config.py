@@ -1,3 +1,5 @@
+# configuration information
+# Email related work should be done in the future
 import os
 basedir = os.path.abspath(os.path.dirname(__file__))
 

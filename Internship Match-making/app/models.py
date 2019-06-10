@@ -197,7 +197,8 @@ class Match(db.Model):
     match_rate = db.Column(db.FLOAT)
 
 
-# The application model is used when students get their results and they can apply some suitable internships.
+# The application model is used when students get their results
+# and they can apply some suitable internships.
 # These fields in the model can pinpoint an accurate student or host.
 class Application(db.Model):
     __tablename__ = 'application'
@@ -209,7 +210,8 @@ class Application(db.Model):
     match_rate = db.Column(db.FLOAT)
 
 
-# The application model is used when hosts get their matching results and they can invite some suitable students.
+# The application model is used when hosts get their matching results
+# and they can invite some suitable students.
 # These fields in the model can pinpoint an accurate student or host.
 class Invitation(db.Model):
     __tablename__ = 'invitation'

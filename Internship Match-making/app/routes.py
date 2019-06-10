@@ -1,32 +1,40 @@
-from datetime import datetime, tzinfo
+'''
+This file contains all routes information in this system.
+
+All web pages are routed to this file to complete.
+
+At the same time, the methods involved in the system, such as matching, inviting internships, applying for internships,
+etc., and storing, modifying, and obtaining data are all completed by this document.
+'''
+from datetime import datetime
 import time, os
-from flask import render_template, flash, redirect, url_for, request, send_from_directory, session
+from flask import render_template, flash, redirect, url_for, request, session
 from flask.json import jsonify
 from flask_login import login_user, logout_user, current_user, login_required
-from werkzeug.exceptions import Aborter
-from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm, \
     HostInformation, UserRequirement, HostRequirement, ITField
 from app.models import User, Host, URequirement, Student, Internship, InternshipCategory, State, City, \
-    UInternshipPosition, ItFieldDb,  UItFieldDb, \
+    UInternshipPosition, ItFieldDb, UItFieldDb, \
     Application, Invitation, Match
 from werkzeug.utils import secure_filename
-
 
 timeslot = ["09:00:00 ", "10:30:00 ", "12:00:00 ", "13:30:00 ", "15:00:00 "]
 
 
+# Allowed upload of CV file format.
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
+# Allowed file suffix
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif', 'pdf'])
 
 app.config['UPLOAD_FOLDER'] = os.getcwd() + "/files"
 
 
+# Before routing, determine whether it is a valid user and time acquisition, and save them in the "User" table.
 @app.before_request
 def before_request():
     if current_user.is_authenticated:
@@ -34,6 +42,7 @@ def before_request():
         db.session.commit()
 
 
+# Homepage, mainly used to route users to their respective identities web page based on their identity.
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/index', methods=['GET', 'POST'])
 @login_required
@@ -44,66 +53,64 @@ def index():
         user = User.query.filter_by(username=current_user.username).first_or_404()
         if user.role == 'Host':
             return redirect(url_for('host_confirmation', hostname=current_user.username))
+        # Student
         else:
             return redirect(url_for('confirm_information', username=current_user.username))
 
 
+# Login implementation
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('edit_profile'))
+    # login form
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
+        # Determine if it exists and whether to enter a legal password
         if user is None or not user.check_password(form.password.data):
             flash('Invalid username or password')
             return redirect(url_for('login'))
-        # else:
-        # db.session.add(user)
-        # db.session.commit()
         login_user(user, remember=form.remember_me.data)
         session['user_id'] = user.id
-        print(user.role)
-        # print(session['role'])
-        # if form.role.data==session['role']:
-
         if user.role == "Host":
             return redirect(url_for('host_confirmation', hostname=current_user.username))
         if user.role == "Student":
             return redirect(url_for('confirm_information'))
+        # Administrator identity and routes to the matching results page
         if user.role == "Administrator":
             return redirect(url_for('viewMatches'))
-        # else:
-        #     flash("Please choose the correct identity!")
     return render_template('login.html', title='Sign In', form=form)
 
 
+# Logout implementation
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
 
-# @app.route('/register', methods=['GET', 'POST'])
-# @login_required
-# def host():
-
-
+# registration implementation
+# The user is here to determine their identity,student or host.
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     form = RegistrationForm()
     if form.validate_on_submit():
+        # store username, email and role in "User" table
         user = User(username=form.username.data, email=form.email.data, role=form.role.data)
         session['role'] = request.form['role']
+        # Transform valid password into hash value
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
+        # if the identity is host, then this user is store in the "Host" table
         if request.form['role'] == 'Host':
             host = Host(id=user.id, hostname=user.username, email=user.email)
             db.session.add(host)
             db.session.commit()
+        # if the identity is host, then this user is store in the "Host" table
         if request.form['role'] == 'Student':
             student = Student(id=user.id, username=user.username, email=user.email)
             db.session.add(student)
@@ -113,6 +120,7 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
+# According to the identity,  it will be routed to the corresponding identity page
 @app.route('/user/<username>')
 @login_required
 def user(username):
@@ -123,24 +131,23 @@ def user(username):
         return redirect(url_for('confirm_information', username=current_user.username))
 
 
+# The student edit the profile
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
     form = EditProfileForm(current_user.username)
-    # form = Form(csrf_enabled=False)
     current_student = Student.query.filter_by(id=current_user.id).first()
-
+    # Dynamic cascade selection and fields displayed before unselected values
     form.internship_category.choices = [(category.name, category.name) for category in
                                         InternshipCategory.query.filter_by(
                                             field_category=form.field_category.data).all()]
     form.state.choices = [(state.name, state.name) for state in
                           State.query.filter_by(
                               nation=form.nation.data).all()]
-
-    # print(form.state.choices)
     form.city.choices = [(city.name, city.name) for city in
                          City.query.filter_by(
                              state=form.state.data).all()]
+    # Click the "Next" button
     if form.next.data and form.validate_on_submit():
         current_student.username = form.username.data
         current_student.nation = form.nation.data
@@ -156,14 +163,13 @@ def edit_profile():
         current_student.disability = form.disability.data
         current_student.field_category = form.field_category.data
         current_student.internship_category = form.internship_category.data
-        # print(request.form['internship_category'])
         current_student.language = form.language.data
         current_student.work_experience = form.work_experience.data
         current_student.work_experience_describe = form.work_experience_describe.data
-        # current_student.salary = form.salary.data
         db.session.commit()
         flash('Your changes have been saved.')
         return redirect(url_for('host_req_skills', s_h_id=current_student.id))
+    # "GET" method
     elif request.method == 'GET':
         if current_student.field_category:
             form.internship_category.choices = [(category.name, category.name)
@@ -192,7 +198,6 @@ def edit_profile():
             form.city.choices = [(city.name, city.name) for city in
                                  City.query.filter_by(
                                      state=form.state.data).all()]
-        print(form.city.choices)
         form.username.data = current_student.username
         form.nation.data = current_student.nation
         form.state.data = current_student.state
@@ -206,28 +211,17 @@ def edit_profile():
         form.visa.data = current_student.visa
         form.disability.data = current_student.disability
         form.field_category.data = current_student.field_category
-        # print(InternshipCategory.query.filter_by(id=current_student.internship_category).first())
-        # print(current_student.internship_category)
-
         form.internship_category.data = str(current_student.internship_category)
         form.language.data = current_student.language
         form.work_experience.data = current_student.work_experience
         form.work_experience_describe.data = current_student.work_experience_describe
-        # form.salary.data = current_student.salary
-    # elif form.ensure_information.data and form.validate_on_submit():
-    #     form.username.data = current_student.username
-    #     form.gender.data = current_student.gender
-    #     form.education_level.data = current_student.education_level
-    #     form.major.data = current_student.major
-    #     form.email.data = current_student.email
-    #     form.age.data = current_student.age
-    #     return redirect(url_for('confirm_information'))
     elif form.upload_file.data and form.validate_on_submit():
         return redirect(url_for('upload_file'))
     return render_template('add_profile.html', title='Edit Profile',
                            form=form, current_student=current_student)
 
 
+# upload students' CV
 @app.route('/upload_file', methods=['GET', 'POST'])
 @login_required
 def upload_file():
@@ -235,12 +229,14 @@ def upload_file():
         file = request.files['file']
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
+            # The storage path
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             flash("File saved successfully!")
         return redirect(url_for('edit_profile'))
     return render_template('upload_file.html', title='Choose File')
 
 
+# The student information confirmation page
 @app.route('/confirm_information', methods=['GET', 'POST'])
 @login_required
 def confirm_information():
@@ -248,6 +244,7 @@ def confirm_information():
     return render_template('confirm_information.html', students=student)
 
 
+# The host check students' details (students apply internships)
 @app.route('/student_details/<username>', methods=['GET', 'POST'])
 @login_required
 def student_details(username):
@@ -257,6 +254,7 @@ def student_details(username):
     return render_template('student_information.html', students=student)
 
 
+# The student check hosts' details (hosts invite the student)
 @app.route('/internship_details/<internship_id>', methods=['GET', 'POST'])
 @login_required
 def internship_details(internship_id):
@@ -264,6 +262,7 @@ def internship_details(internship_id):
     return render_template('internship_details.html', students=internship)
 
 
+# Check the matching results
 @app.route('/viewMatches', methods=['GET', 'POST'])
 @login_required
 def viewMatches():
@@ -276,12 +275,11 @@ def viewMatches():
         matchedList = Match.query.filter_by(stu_username=current_user.username).order_by(Match.hostname,
                                                                                          Match.internship_name).all()
     else:
-        # print("Is Administrator")
         matchedList = Match.query.filter().order_by(Match.hostname, Match.match_rate.desc()).all()
-        # print(matchedList)
     return render_template('match_results.html', students=matchedList)
 
 
+# cancel results and the database will be updated
 @app.route('/cancelMatch/<match_id>', methods=['GET', 'POST'])
 @login_required
 def cancelMatch(match_id):
@@ -300,6 +298,7 @@ def cancelMatch(match_id):
     return redirect(url_for('viewMatches'))
 
 
+# cancel invitations
 @app.route('/cancelInvitation/<invitation_id>', methods=['GET', 'POST'])
 @login_required
 def cancelInvitation(invitation_id):
@@ -311,6 +310,7 @@ def cancelInvitation(invitation_id):
     return redirect(url_for('viewInvitation', username=current_user.username))
 
 
+# cancel applications
 @app.route('/cancelApplication/<application_id>', methods=['GET', 'POST'])
 @login_required
 def cancelApplication(application_id):
@@ -322,6 +322,7 @@ def cancelApplication(application_id):
     return redirect(url_for('viewApplication', hostname=current_user.username))
 
 
+# If the identity is the administrator, it will be jumps to related web page.
 @app.route('/administrator/<username>')
 @login_required
 def administrator(username):
@@ -331,6 +332,7 @@ def administrator(username):
     return render_template('administrator.html', administrator=current_user)
 
 
+# user list
 @app.route('/userlist', methods=['GET', 'POST'])
 @login_required
 def userlist():
@@ -345,6 +347,7 @@ def userlist():
                            next_url=next_url, prev_url=prev_url)
 
 
+# Students check hosts' invitations
 @app.route('/viewInvitation/<username>', methods=['GET', 'POST'])
 @login_required
 def viewInvitation(username):
@@ -352,6 +355,8 @@ def viewInvitation(username):
     return render_template('invitations.html', students=invitations)
 
 
+# Hosts accept applications
+# "application_id": the id of the application
 @app.route('/acceptApplication/<application_id>', methods=['GET', 'POST'])
 @login_required
 def acceptApplication(application_id):
@@ -376,6 +381,8 @@ def acceptApplication(application_id):
     return render_template('applications.html', students=applications)
 
 
+# Students accept invitations
+# "invitation_id": the id of the invitation
 @app.route('/acceptInvitation/<invitation_id>', methods=['GET', 'POST'])
 @login_required
 def acceptInvitation(invitation_id):
@@ -399,6 +406,8 @@ def acceptInvitation(invitation_id):
     return render_template('invitations.html', students=invitations)
 
 
+# Hosts check applications from students.
+# "hostname": the host name
 @app.route('/viewApplication/<hostname>', methods=['GET', 'POST'])
 @login_required
 def viewApplication(hostname):
@@ -406,6 +415,7 @@ def viewApplication(hostname):
     return render_template('applications.html', students=applications)
 
 
+# Students apply the matched internships.
 @app.route('/apply/<internship_id>', methods=['GET', 'POST'])
 @login_required
 def apply(internship_id):
@@ -432,6 +442,7 @@ def apply(internship_id):
     return redirect(url_for('matchedHosts', username=current_user.username))
 
 
+# Hosts invite the matched students
 @app.route('/invite/', methods=['GET', 'POST'])
 @login_required
 def invite():
@@ -460,6 +471,7 @@ def invite():
     return redirect(url_for('matchedUsers', req_id=internship_id))
 
 
+# Set permission for users, administrator or normal users
 @app.route('/set_permission/<user_id>:<administrator>', methods=['GET', 'POST'])
 @login_required
 def set_permission(user_id, administrator):
@@ -477,6 +489,8 @@ def set_permission(user_id, administrator):
     return redirect(url_for('userlist'))
 
 
+# The homepage of the host.
+# The internship information confirmation page.
 @app.route('/host_confirmation/<hostname>', methods=['GET', 'POST'])
 @login_required
 def host_confirmation(hostname):
@@ -484,6 +498,7 @@ def host_confirmation(hostname):
     return render_template('internship_requirement.html', requirements=requirements)
 
 
+# Edit host's introduction
 @app.route('/add_host/<hostname>', methods=['GET', 'POST'])
 @login_required
 def add_host(hostname):
@@ -508,8 +523,6 @@ def add_host(hostname):
         db.session.commit()
         flash("Data have been saved!")
         return redirect(url_for('add_host', hostname=hostname))
-    # if form.validate_on_submit() and form.matchMaking.data:
-    #     return redirect(url_for('matchedUsers', hostname=hostname))
     if form.validate_on_submit() and form.back.data:
         requirements = Internship.query.filter_by(hostname=current_user.username).all()
         return render_template('internship_requirement.html', requirements=requirements)
@@ -533,24 +546,28 @@ def add_host(hostname):
                 form.city.choices = [(city.name, city.name) for city in
                                      City.query.filter_by(
                                          state=form.state.data).all()]
-            # print(current_host.city)
             form.description.data = current_host.description
             form.nation.data = current_host.nation
             form.state.data = current_host.state
-            # print(City.query.filter_by(name=current_host.city ))
-            # print(current_host.city)
             form.city.data = current_host.city
             form.address.data = current_host.address
-    # return render_template('add_host.html', title='Host Information', form=form)
     return render_template('host_information.html', form=form)
 
 
+# map four education level to numbers
 level = {}
 level['highschool'] = 1
 level['undergraduate'] = 2
 level['postgraduate'] = 3
 level['doctor'] = 4
 
+
+# The match algorithm for IT field
+# This algorithm takes the information of one student and one internship,
+# after running a number of filters, it returns a float number (match rate).
+# Zero means cannot match.
+# The match rate is calculated by: (number of exact matches) / (number of total filters)
+# As long as one mismatch occurs, this algorithm returns zero.
 
 def matchIT(stu, stu_req, stu_info, host_req, detailed_info):
     score = 0
@@ -606,8 +623,6 @@ def matchIT(stu, stu_req, stu_info, host_req, detailed_info):
         if host_req.workdays_flex and stu_req.workdays_flex:
             return -1
     score += 1
-    print(111)
-    print(detailed_info)
     if detailed_info.java_level > stu_info.java_level:
         not_match -= 1
         if detailed_info.java_flex:
@@ -777,6 +792,7 @@ def matchIT(stu, stu_req, stu_info, host_req, detailed_info):
     return (score + not_match) / score
 
 
+# The match function for hosts
 @app.route('/filtered_user_list/<req_id>', methods=['GET', 'POST'])
 @login_required
 def matchedUsers(req_id):
@@ -787,20 +803,6 @@ def matchedUsers(req_id):
     stu_dict = {}
     if host_req != None:
         students = Student.query.filter_by(field_category=host_req.field_category).all()
-        # students = Student.query.filter(
-        #     and_(
-        #         or_(Student.gender == host_req.gender_requirement, not host_req.gender_flex),
-        #         or_(Student.education_level.in_(educationList), not host_req.education_flex),
-        #         or_(Student.major == host_req.major, not host_req.major_flex),
-        #         or_(Student.age >= host_req.age, not host_req.age_flex),
-        #         or_(Student.field_category == host_req.field_category),
-        #         or_(Student.workdays_requirement < host_req.workdays, not host_req.workdays_flex)
-        #     ))
-        # ).order_by(desc((Student.gender == host_req.gender_requirement) +
-        #                 (Student.education_level.in_(educationList)) +
-        #                 (Student.major == host_req.major) +
-        #                 (Student.age >= host_req.age)))
-
         for stu in students:
             stu_req = URequirement.query.filter_by(username=stu.username).first()
             if host_req.field_category == "IT field":
@@ -811,15 +813,6 @@ def matchedUsers(req_id):
                         score = matchIT(stu, stu_req, stu_info, host_req, detailed_info)
                         if score > -1:
                             stu_dict[stu] = int(score * 10000) / 100
-
-            # elif host_req.field_category == "Education field":
-            #     detailed_info = EducationFieldDb.query.filter_by(internship_id=req_id)
-            #
-            # else:
-            #     detailed_info = EngineerFieldDb.query.filter_by(internship_id=req_id)
-    # else:
-    #     flash("Please complete at least one internship first!")
-    #     return url_for('save_host_req',)
     selectedStudent = sorted(stu_dict.items(), key=lambda x: x[1], reverse=True)
     for i in range(0, len(selectedStudent)):
         tempStu = selectedStudent[i]
@@ -827,6 +820,7 @@ def matchedUsers(req_id):
     return render_template('fiiltered_user_list.html', students=selectedStudent)
 
 
+# The match function for students
 @app.route('/filtered_host_list/<username>', methods=['GET', 'POST'])
 @login_required
 def matchedHosts(username):
@@ -847,14 +841,13 @@ def matchedHosts(username):
                         if score > -1:
                             host_dict[internship] = int(score * 10000) / 100
 
-
+    # If a new student does not click the "Edit" first, the web page will jumps to this page anyhow.
     elif stu_req == None and stu_info != None:
         flash("Please complete your requirement first!")
         return redirect(url_for('save_user_req'))
     else:
         flash("Please complete your profile and requirement first!")
         return redirect(url_for('edit_profile'))
-
     selectedInternships = sorted(host_dict.items(), key=lambda x: x[1], reverse=True)
     for i in range(0, len(selectedInternships)):
         tempIntern = selectedInternships[i]
@@ -862,6 +855,7 @@ def matchedHosts(username):
     return render_template('filtered_host_list.html', students=selectedInternships)
 
 
+# Handle students' requirement
 @app.route('/save_user_req', methods=['GET', 'POST'])
 @login_required
 def save_user_req():
@@ -939,21 +933,8 @@ def save_user_req():
             db.session.add(user_req)
         db.session.commit()
         return redirect(url_for('confirm_information'))
-
-    # elif form.validate_on_submit() and form.match_job.data:
-    #     if user_req:
-    #         return redirect(url_for('matchedHosts', username=current_user.username))
-
     elif request.method == 'GET':
-
         if user_req:
-            # form.workplace_state.choices = [(state.name, state.name) for state in
-            #                                 State.query.filter_by(
-            #                                     nation=user_req.workplace_nation).all()]
-            #
-            # form.workplace_city.choices = [(city.name, city.name) for city in
-            #                                City.query.filter_by(
-            #                                    state=user_req.workplace_state).all()]
             if user_req.workplace_nation:
                 form.workplace_state.choices = [(state.name, state.name) for state in
                                                 State.query.filter_by(
@@ -994,17 +975,15 @@ def save_user_req():
     return render_template('save_user_req.html', form=form)
 
 
+# Handle hosts' requirements
 @app.route('/save_host_req/<intern_name>', methods=['GET', 'POST'])
 @login_required
 def save_host_req(intern_name):
-    # field={}
-    #
     intern_id = None
     if intern_name != "a_totally_new_page":
         intern_id = request.args.get('req_id')
     hostname = current_user.username
     form = HostRequirement(hostname)
-    # form.internship_category.choices=[(internship_category.id,internship_category.name) for internship_category in ]
     form.hostname.data = hostname
     form.internship_category.choices = [(category.name, category.name) for category in
                                         InternshipCategory.query.filter_by(
@@ -1016,8 +995,6 @@ def save_host_req(intern_name):
     form.workplace_city.choices = [(city.name, city.name) for city in
                                    City.query.filter_by(
                                        state=form.workplace_state.data).all()]
-
-    # form.internship_category.choices=[(name1,name2)for (name1,name2) in ]
     if form.next.data and form.validate_on_submit():
         host_req = Internship.query.filter_by(id=intern_id).first()
         if host_req:
@@ -1091,10 +1068,9 @@ def save_host_req(intern_name):
         internship_id = Internship.query.filter_by(hostname=hostname,
                                                    internship_name=form.internship_name.data).first().id
 
-        # return render_template('internship_requirement.html', requirements=requirements)
         return redirect(url_for('host_req_skills', s_h_id=internship_id))
     elif request.method == 'GET':
-
+        # Using the "a_totally_new_page" to create a new internship
         if intern_name == "a_totally_new_page":
             pass
         else:
@@ -1111,7 +1087,6 @@ def save_host_req(intern_name):
                 form.internship_category.choices = [(category.name, category.name) for category in
                                                     InternshipCategory.query.filter_by(
                                                         field_category=form.field_category.data).all()]
-            # print( host_req.field_category)
             if host_req.workplace_nation:
                 form.workplace_state.choices = [(state.name, state.name) for state in
                                                 State.query.filter_by(
@@ -1128,9 +1103,6 @@ def save_host_req(intern_name):
                 form.workplace_city.choices = [(city.name, city.name) for city in
                                                City.query.filter_by(
                                                    state=form.workplace_state.data).all()]
-            # form.internship_category.choices = [(category.name, category.name) for category in
-            #                                     InternshipCategory.query.filter_by(
-            #                                         field_category=host_req.field_category).all()]
             if host_req:
                 form.field_category.data = host_req.field_category
                 form.internship_name.data = host_req.internship_name
@@ -1143,7 +1115,6 @@ def save_host_req(intern_name):
                 form.gender_flex.data = host_req.gender_flex
                 form.major.data = host_req.major
                 form.major_flex.data = host_req.major_flex
-
                 form.salary.data = host_req.salary
                 form.salary_flex.data = host_req.salary_flex
                 form.visa.data = host_req.visa
@@ -1156,17 +1127,16 @@ def save_host_req(intern_name):
                 form.city_flex.data = host_req.city_flex
                 form.workdays.data = host_req.workdays
                 form.workdays_flex.data = host_req.workdays_flex
-                print(host_req.opportunity_to_fulltime_job)
                 form.opportunity_to_fulltime_job.data = host_req.opportunity_to_fulltime_job
                 form.fulltime_flex.data = host_req.fulltime_flex
                 form.language_requirement.data = host_req.language_requirement
                 form.language_flex.data = host_req.language_flex
                 form.disability.data = host_req.disability
                 form.disability_flex.data = host_req.disability_flex
-
     return render_template('save_host_req.html', form=form)
 
 
+# Handle students and host skills according to their identities
 @app.route('/host_req_skills/<s_h_id>', methods=['GET', 'POST'])
 @login_required
 def host_req_skills(s_h_id):
@@ -1176,21 +1146,9 @@ def host_req_skills(s_h_id):
         print(category)
     elif current_user.role == "Student":
         category = Student.query.filter_by(id=s_h_id).first().field_category
-        print(category)
-    # form = None
-    # if category == 'IT field' and current_user.role == "Host":
-    #     form = ITField()
-    #     form.category_name.data = category
-    #
-    # elif category == 'IT field' and current_user.role == "Student":
-    #     form = UITField()
-    #     it_method(s_h_id=s_h_id,form=form,category=category)
-    #
-    # def it_method(s_h_id,form,category):
     if category == 'IT field':
         form = ITField()
         form.category_name.data = category
-
         if form.validate_on_submit() and form.submit.data:
             it_field = None
             if current_user.role == "Host":
@@ -1268,6 +1226,9 @@ def host_req_skills(s_h_id):
                 it_field.machine_learning_level = form.machine_learning_level.data
                 it_field.machine_learning_flex = form.machine_learning_flex.data
                 db.session.add(it_field)
+            # The code is used to handle other field categories, such as Engineer field, and if the student change the
+            # field , the data should exist just one table.
+
             # engineer_field1 = None
             # education_field1 = None
             # if current_user.role == "Host":
@@ -1304,8 +1265,6 @@ def host_req_skills(s_h_id):
                 it_field = ItFieldDb.query.filter_by(internship_id=s_h_id).first()
             elif current_user.role == "Student":
                 it_field = UItFieldDb.query.filter_by(student_id=s_h_id).first()
-            # print(s_h_id)
-            # print(it_field.java_level)
             if it_field:
                 form.java_level.data = it_field.java_level
                 form.java_flex.data = it_field.java_flex
@@ -1339,278 +1298,275 @@ def host_req_skills(s_h_id):
                 return render_template('host_it_field.html', form=form)
             elif current_user.role == "Student":
                 return render_template('student_it_field.html', form=form)
-    # elif category == 'Engineer field':
-    #     form = EngineerField()
-    #     form.category_name.data = category
-    #     if form.validate_on_submit() and form.submit.data:
-    #         engineer_field = None
-    #         if current_user.role == "Host":
-    #             engineer_field = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #             print(engineer_field)
-    #         elif current_user.role == "Student":
-    #             engineer_field = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
-    #         if engineer_field:
-    #             if current_user.role == "Host":
-    #                 engineer_field.internship_id = s_h_id
-    #             elif current_user.role == "Student":
-    #                 engineer_field.student_id = s_h_id
-    #             engineer_field.years_of_work_experience = form.years_of_work_experience.data
-    #             engineer_field.work_experience_flex = form.work_experience_flex.data
-    #             engineer_field.knowledge_oil_gas = form.knowledge_oil_gas.data
-    #             engineer_field.oil_gas_flex = form.oil_gas_flex.data
-    #             engineer_field.oilfield_petrochemical_experience = form.oilfield_petrochemical_experience.data
-    #             engineer_field.oilfield_petrochemical_flex = form.oilfield_petrochemical_flex.data
-    #             engineer_field.communicating_interfacing_skills = form.communicating_interfacing_skills.data
-    #             engineer_field.communicating_interfacing_flex = form.communicating_interfacing_flex.data
-    #             engineer_field.knowledge_of_the_latest_telecommunications_technology = \
-    #                 form.knowledge_of_the_latest_telecommunications_technology.data
-    #             engineer_field.the_latest_telecommunications_technology_flex = \
-    #                 form.the_latest_telecommunications_technology_flex.data
-    #             engineer_field.familiar_with_industry_projects = form.familiar_with_industry_projects.data
-    #             engineer_field.industry_projects_flex = form.industry_projects_flex.data
-    #             engineer_field.engineering_design_experience = form.engineering_design_experience.data
-    #             engineer_field.engineering_design_flex = form.engineering_design_flex.data
-    #             engineer_field.knowledge_applicable_codes_standards = form.knowledge_applicable_codes_standards.data
-    #             engineer_field.applicable_codes_standards_flex = form.applicable_codes_standards_flex.data
-    #         else:
-    #             if current_user.role == "Host":
-    #                 engineer_field = EngineerFieldDb()
-    #                 engineer_field.internship_id = s_h_id
-    #                 engineer_field.category_name = category
-    #             elif current_user.role == "Student":
-    #                 engineer_field = UEngineerFieldDb()
-    #                 engineer_field.student_id = s_h_id
-    #                 engineer_field.category_name = category
-    #             engineer_field.years_of_work_experience = form.years_of_work_experience.data
-    #             engineer_field.work_experience_flex = form.work_experience_flex.data
-    #             engineer_field.knowledge_oil_gas = form.knowledge_oil_gas.data
-    #             engineer_field.oil_gas_flex = form.oil_gas_flex.data
-    #             engineer_field.oilfield_petrochemical_experience = form.oilfield_petrochemical_experience.data
-    #             engineer_field.oilfield_petrochemical_flex = form.oilfield_petrochemical_flex.data
-    #             engineer_field.communicating_interfacing_skills = form.communicating_interfacing_skills.data
-    #             engineer_field.communicating_interfacing_flex = form.communicating_interfacing_flex.data
-    #             engineer_field.knowledge_of_the_latest_telecommunications_technology = \
-    #                 form.knowledge_of_the_latest_telecommunications_technology.data
-    #             engineer_field.the_latest_telecommunications_technology_flex = \
-    #                 form.the_latest_telecommunications_technology_flex.data
-    #             engineer_field.familiar_with_industry_projects = form.familiar_with_industry_projects.data
-    #             engineer_field.industry_projects_flex = form.industry_projects_flex.data
-    #             engineer_field.engineering_design_experience = form.engineering_design_experience.data
-    #             engineer_field.engineering_design_flex = form.engineering_design_flex.data
-    #             engineer_field.knowledge_applicable_codes_standards = form.knowledge_applicable_codes_standards.data
-    #             engineer_field.applicable_codes_standards_flex = form.applicable_codes_standards_flex.data
-    #             db.session.add(engineer_field)
-    #         it_field1 = None
-    #         education_field1 = None
-    #         if current_user.role == "Host":
-    #             it_field1 = ItFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #             education_field1 = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #         elif current_user.role == "Student":
-    #             it_field1 = UItFieldDb.query.filter_by(student_id=s_h_id).first()
-    #             education_field1 = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
-    #         if it_field1:
-    #             db.session.delete(it_field1)
-    #         if education_field1:
-    #             db.session.delete(education_field1)
-    #
-    #         db.session.commit()
-    #         flash('Data have been saved')
-    #         # print(Internship.query.filter_by(id=internship_id).all())
-    #         if current_user.role == "Host":
-    #             hostname = Internship.query.filter_by(id=s_h_id).first()
-    #             hostname = str(hostname)
-    #             # print(hostname)
-    #             requirements = Internship.query.filter_by(hostname=hostname).all()
-    #             return render_template('internship_requirement.html', requirements=requirements)
-    #         elif current_user.role == "Student":
-    #             return redirect(url_for('confirm_information'))
-    #     elif form.back.data and form.validate_on_submit():
-    #         if current_user.role == "Host":
-    #             previous_req = Internship.query.filter_by(id=s_h_id).first()
-    #             return redirect(url_for('save_host_req', intern_name=previous_req.internship_name))
-    #         elif current_user.role == "Student":
-    #             return redirect(url_for('edit_profile'))
-    #
-    #     elif request.method == "GET":
-    #         engineer_field = None
-    #         if current_user.role == "Host":
-    #             engineer_field = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #         elif current_user.role == "Student":
-    #             engineer_field = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
-    #
-    #         if engineer_field:
-    #             form.years_of_work_experience.data = engineer_field.years_of_work_experience
-    #             form.work_experience_flex.data = engineer_field.work_experience_flex
-    #             form.knowledge_oil_gas.data = engineer_field.knowledge_oil_gas
-    #             form.oil_gas_flex.data = engineer_field.oil_gas_flex
-    #             form.oilfield_petrochemical_experience.data = engineer_field.oilfield_petrochemical_experience
-    #             form.oilfield_petrochemical_flex.data = engineer_field.oilfield_petrochemical_flex
-    #             form.communicating_interfacing_skills.data = engineer_field.communicating_interfacing_skills
-    #             form.communicating_interfacing_flex.data = engineer_field.communicating_interfacing_flex
-    #             form.knowledge_of_the_latest_telecommunications_technology.data = \
-    #                 engineer_field.knowledge_of_the_latest_telecommunications_technology
-    #             form.the_latest_telecommunications_technology_flex.data = \
-    #                 engineer_field.the_latest_telecommunications_technology_flex
-    #             form.familiar_with_industry_projects.data = engineer_field.familiar_with_industry_projects
-    #             form.industry_projects_flex.data = engineer_field.industry_projects_flex
-    #             form.engineering_design_experience.data = engineer_field.engineering_design_experience
-    #             form.engineering_design_flex.data = engineer_field.engineering_design_flex
-    #             form.knowledge_applicable_codes_standards.data = engineer_field.knowledge_applicable_codes_standards
-    #             form.applicable_codes_standards_flex.data = engineer_field.applicable_codes_standards_flex
-    #         if current_user.role == "Host":
-    #             return render_template('host_it_field.html', form=form)
-    #         elif current_user.role == "Student":
-    #             return render_template('student_it_field.html', form=form)
-    # elif category == 'Education field':
-    #     form = EducationField()
-    #     form.category_name.data = category
-    #     if form.validate_on_submit() and form.submit.data:
-    #         education_field = None
-    #         if current_user.role == "Host":
-    #             education_field = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #             print(education_field)
-    #         elif current_user.role == "Student":
-    #             education_field = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
-    #         if education_field:
-    #             print('there')
-    #             if current_user.role == "Host":
-    #                 education_field.internship_id = s_h_id
-    #             elif current_user.role == "Student":
-    #                 education_field.student_id = s_h_id
-    #             education_field.character = form.character.data
-    #             education_field.character_flex = form.character_flex.data
-    #             education_field.interpersonal_skills = form.interpersonal_skills.data
-    #             education_field.interpersonal_flex = form.interpersonal_flex.data
-    #             education_field.time_management_skills = form.time_management_skills.data
-    #             education_field.time_management_flex = form.time_management_flex.data
-    #             education_field.teaching_qualification = form.teaching_qualification.data
-    #             education_field.teaching_qualification_flex = form.teaching_qualification_flex.data
-    #             education_field.years_experience = form.years_experience.data
-    #             education_field.years_experience_flex = form.years_experience_flex.data
-    #             education_field.language_requirement = form.language_requirement.data
-    #             education_field.language_requirement_flex = form.language_requirement_flex.data
-    #             education_field.teaching_field = form.teaching_field.data
-    #             education_field.teaching_field_flex = form.teaching_field_flex.data
-    #             education_field.monitor_experience = form.monitor_experience.data
-    #             education_field.monitor_flex = form.monitor_flex.data
-    #             education_field.assess_experience = form.assess_experience.data
-    #             education_field.assess_flex = form.assess_flex.data
-    #             education_field.teaching_strategies = form.teaching_strategies.data
-    #             education_field.teaching_strategies_flex = form.teaching_strategies_flex.data
-    #             education_field.literacy_numeracy_skills = form.literacy_numeracy_skills.data
-    #             education_field.literacy_numeracy_flex = form.literacy_numeracy_flex.data
-    #             education_field.address_adult_language = form.address_adult_language.data
-    #             education_field.address_adult_language_flex = form.address_adult_language_flex.data
-    #
-    #         else:
-    #             if current_user.role == "Host":
-    #                 # print("there none")
-    #                 education_field = EducationFieldDb()
-    #                 education_field.internship_id = s_h_id
-    #                 education_field.category_name = category
-    #             elif current_user.role == "Student":
-    #                 education_field = UEducationFieldDb()
-    #                 education_field.student_id = s_h_id
-    #                 education_field.category_name = category
-    #             education_field.character = form.character.data
-    #             education_field.character_flex = form.character_flex.data
-    #             education_field.interpersonal_skills = form.interpersonal_skills.data
-    #             education_field.interpersonal_flex = form.interpersonal_flex.data
-    #             education_field.time_management_skills = form.time_management_skills.data
-    #             education_field.time_management_flex = form.time_management_flex.data
-    #             education_field.teaching_qualification = form.teaching_qualification.data
-    #             education_field.teaching_qualification_flex = form.teaching_qualification_flex.data
-    #             education_field.years_experience = form.years_experience.data
-    #             education_field.years_experience_flex = form.years_experience_flex.data
-    #             education_field.language_requirement = form.language_requirement.data
-    #             education_field.language_requirement_flex = form.language_requirement_flex.data
-    #             education_field.teaching_field = form.teaching_field.data
-    #             education_field.teaching_field_flex = form.teaching_field_flex.data
-    #             education_field.monitor_experience = form.monitor_experience.data
-    #             education_field.monitor_flex = form.monitor_flex.data
-    #             education_field.assess_experience = form.assess_experience.data
-    #             education_field.assess_flex = form.assess_flex.data
-    #             education_field.teaching_strategies = form.teaching_strategies.data
-    #             education_field.teaching_strategies_flex = form.teaching_strategies_flex.data
-    #             education_field.literacy_numeracy_skills = form.literacy_numeracy_skills.data
-    #             education_field.literacy_numeracy_flex = form.literacy_numeracy_flex.data
-    #             education_field.address_adult_language = form.address_adult_language.data
-    #             education_field.address_adult_language_flex = form.address_adult_language_flex.data
-    #             db.session.add(education_field)
-    #         it_field1 = None
-    #         engineer_field1 = None
-    #         if current_user.role == "Host":
-    #             it_field1 = ItFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #             engineer_field1 = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #         elif current_user.role == "Student":
-    #             it_field1 = UItFieldDb.query.filter_by(student_id=s_h_id).first()
-    #             engineer_field1 = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
-    #         if it_field1:
-    #             db.session.delete(it_field1)
-    #         if engineer_field1:
-    #             db.session.delete(engineer_field1)
-    #         db.session.commit()
-    #         flash('Data have been saved')
-    #         # print(Internship.query.filter_by(id=internship_id).all())
-    #         if current_user.role == "Host":
-    #             hostname = Internship.query.filter_by(id=s_h_id).first()
-    #             hostname = str(hostname)
-    #             # print(hostname)
-    #             requirements = Internship.query.filter_by(hostname=hostname).all()
-    #             return render_template('internship_requirement.html', requirements=requirements)
-    #         elif current_user.role == "Student":
-    #             return redirect(url_for('confirm_information'))
-    #     elif form.back.data and form.validate_on_submit():
-    #         if current_user.role == "Host":
-    #             previous_req = Internship.query.filter_by(id=s_h_id).first()
-    #             return redirect(url_for('save_host_req', intern_name=previous_req.internship_name))
-    #         elif current_user.role == "Student":
-    #             return redirect(url_for('edit_profile'))
-    #     elif request.method == "GET":
-    #         education_field = None
-    #         if current_user.role == "Host":
-    #             education_field = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
-    #         elif current_user.role == "Student":
-    #             education_field = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
-    #         if education_field:
-    #             form.character.data = education_field.character
-    #             form.character_flex.data = education_field.character_flex
-    #             form.interpersonal_skills.data = education_field.interpersonal_skills
-    #             form.interpersonal_flex.data = education_field.interpersonal_flex
-    #             form.time_management_skills.data = education_field.time_management_skills
-    #             form.time_management_flex.data = education_field.time_management_flex
-    #             form.teaching_qualification.data = education_field.teaching_qualification
-    #             form.teaching_qualification_flex.data = education_field.teaching_qualification_flex
-    #             form.years_experience.data = education_field.years_experience
-    #             form.years_experience_flex.data = education_field.years_experience_flex
-    #             form.language_requirement.data = education_field.language_requirement
-    #             form.language_requirement_flex.data = education_field.language_requirement_flex
-    #             form.teaching_field.data = education_field.teaching_field
-    #             form.teaching_field_flex.data = education_field.teaching_field_flex
-    #             form.monitor_experience.data = education_field.monitor_experience
-    #             form.monitor_flex.data = education_field.monitor_flex
-    #             form.assess_experience.data = education_field.assess_experience
-    #             form.assess_flex.data = education_field.assess_flex
-    #             form.teaching_strategies.data = education_field.teaching_strategies
-    #             form.teaching_strategies_flex.data = education_field.teaching_strategies_flex
-    #             form.literacy_numeracy_skills.data = education_field.literacy_numeracy_skills
-    #             form.literacy_numeracy_flex.data = education_field.literacy_numeracy_flex
-    #             form.address_adult_language.data = education_field.address_adult_language
-    #             form.address_adult_language_flex.data = education_field.address_adult_language_flex
-    #         if current_user.role == "Host":
-    #             return render_template('host_it_field.html', form=form)
-    #         elif current_user.role == "Student":
-    #             return render_template('student_it_field.html', form=form)
+    # The other categories
+    '''
+    elif category == 'Engineer field':
+        form = EngineerField()
+        form.category_name.data = category
+        if form.validate_on_submit() and form.submit.data:
+            engineer_field = None
+            if current_user.role == "Host":
+                engineer_field = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
+                print(engineer_field)
+            elif current_user.role == "Student":
+                engineer_field = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
+            if engineer_field:
+                if current_user.role == "Host":
+                    engineer_field.internship_id = s_h_id
+                elif current_user.role == "Student":
+                    engineer_field.student_id = s_h_id
+                engineer_field.years_of_work_experience = form.years_of_work_experience.data
+                engineer_field.work_experience_flex = form.work_experience_flex.data
+                engineer_field.knowledge_oil_gas = form.knowledge_oil_gas.data
+                engineer_field.oil_gas_flex = form.oil_gas_flex.data
+                engineer_field.oilfield_petrochemical_experience = form.oilfield_petrochemical_experience.data
+                engineer_field.oilfield_petrochemical_flex = form.oilfield_petrochemical_flex.data
+                engineer_field.communicating_interfacing_skills = form.communicating_interfacing_skills.data
+                engineer_field.communicating_interfacing_flex = form.communicating_interfacing_flex.data
+                engineer_field.knowledge_of_the_latest_telecommunications_technology = \
+                    form.knowledge_of_the_latest_telecommunications_technology.data
+                engineer_field.the_latest_telecommunications_technology_flex = \
+                    form.the_latest_telecommunications_technology_flex.data
+                engineer_field.familiar_with_industry_projects = form.familiar_with_industry_projects.data
+                engineer_field.industry_projects_flex = form.industry_projects_flex.data
+                engineer_field.engineering_design_experience = form.engineering_design_experience.data
+                engineer_field.engineering_design_flex = form.engineering_design_flex.data
+                engineer_field.knowledge_applicable_codes_standards = form.knowledge_applicable_codes_standards.data
+                engineer_field.applicable_codes_standards_flex = form.applicable_codes_standards_flex.data
+            else:
+                if current_user.role == "Host":
+                    engineer_field = EngineerFieldDb()
+                    engineer_field.internship_id = s_h_id
+                    engineer_field.category_name = category
+                elif current_user.role == "Student":
+                    engineer_field = UEngineerFieldDb()
+                    engineer_field.student_id = s_h_id
+                    engineer_field.category_name = category
+                engineer_field.years_of_work_experience = form.years_of_work_experience.data
+                engineer_field.work_experience_flex = form.work_experience_flex.data
+                engineer_field.knowledge_oil_gas = form.knowledge_oil_gas.data
+                engineer_field.oil_gas_flex = form.oil_gas_flex.data
+                engineer_field.oilfield_petrochemical_experience = form.oilfield_petrochemical_experience.data
+                engineer_field.oilfield_petrochemical_flex = form.oilfield_petrochemical_flex.data
+                engineer_field.communicating_interfacing_skills = form.communicating_interfacing_skills.data
+                engineer_field.communicating_interfacing_flex = form.communicating_interfacing_flex.data
+                engineer_field.knowledge_of_the_latest_telecommunications_technology = \
+                    form.knowledge_of_the_latest_telecommunications_technology.data
+                engineer_field.the_latest_telecommunications_technology_flex = \
+                    form.the_latest_telecommunications_technology_flex.data
+                engineer_field.familiar_with_industry_projects = form.familiar_with_industry_projects.data
+                engineer_field.industry_projects_flex = form.industry_projects_flex.data
+                engineer_field.engineering_design_experience = form.engineering_design_experience.data
+                engineer_field.engineering_design_flex = form.engineering_design_flex.data
+                engineer_field.knowledge_applicable_codes_standards = form.knowledge_applicable_codes_standards.data
+                engineer_field.applicable_codes_standards_flex = form.applicable_codes_standards_flex.data
+                db.session.add(engineer_field)
+            it_field1 = None
+            education_field1 = None
+            if current_user.role == "Host":
+                it_field1 = ItFieldDb.query.filter_by(internship_id=s_h_id).first()
+                education_field1 = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
+            elif current_user.role == "Student":
+                it_field1 = UItFieldDb.query.filter_by(student_id=s_h_id).first()
+                education_field1 = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
+            if it_field1:
+                db.session.delete(it_field1)
+            if education_field1:
+                db.session.delete(education_field1)
+
+            db.session.commit()
+            flash('Data have been saved')
+            # print(Internship.query.filter_by(id=internship_id).all())
+            if current_user.role == "Host":
+                hostname = Internship.query.filter_by(id=s_h_id).first()
+                hostname = str(hostname)
+                # print(hostname)
+                requirements = Internship.query.filter_by(hostname=hostname).all()
+                return render_template('internship_requirement.html', requirements=requirements)
+            elif current_user.role == "Student":
+                return redirect(url_for('confirm_information'))
+        elif form.back.data and form.validate_on_submit():
+            if current_user.role == "Host":
+                previous_req = Internship.query.filter_by(id=s_h_id).first()
+                return redirect(url_for('save_host_req', intern_name=previous_req.internship_name))
+            elif current_user.role == "Student":
+                return redirect(url_for('edit_profile'))
+
+        elif request.method == "GET":
+            engineer_field = None
+            if current_user.role == "Host":
+                engineer_field = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
+            elif current_user.role == "Student":
+                engineer_field = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
+
+            if engineer_field:
+                form.years_of_work_experience.data = engineer_field.years_of_work_experience
+                form.work_experience_flex.data = engineer_field.work_experience_flex
+                form.knowledge_oil_gas.data = engineer_field.knowledge_oil_gas
+                form.oil_gas_flex.data = engineer_field.oil_gas_flex
+                form.oilfield_petrochemical_experience.data = engineer_field.oilfield_petrochemical_experience
+                form.oilfield_petrochemical_flex.data = engineer_field.oilfield_petrochemical_flex
+                form.communicating_interfacing_skills.data = engineer_field.communicating_interfacing_skills
+                form.communicating_interfacing_flex.data = engineer_field.communicating_interfacing_flex
+                form.knowledge_of_the_latest_telecommunications_technology.data = \
+                    engineer_field.knowledge_of_the_latest_telecommunications_technology
+                form.the_latest_telecommunications_technology_flex.data = \
+                    engineer_field.the_latest_telecommunications_technology_flex
+                form.familiar_with_industry_projects.data = engineer_field.familiar_with_industry_projects
+                form.industry_projects_flex.data = engineer_field.industry_projects_flex
+                form.engineering_design_experience.data = engineer_field.engineering_design_experience
+                form.engineering_design_flex.data = engineer_field.engineering_design_flex
+                form.knowledge_applicable_codes_standards.data = engineer_field.knowledge_applicable_codes_standards
+                form.applicable_codes_standards_flex.data = engineer_field.applicable_codes_standards_flex
+            if current_user.role == "Host":
+                return render_template('host_it_field.html', form=form)
+            elif current_user.role == "Student":
+                return render_template('student_it_field.html', form=form)
+    elif category == 'Education field':
+        form = EducationField()
+        form.category_name.data = category
+        if form.validate_on_submit() and form.submit.data:
+            education_field = None
+            if current_user.role == "Host":
+                education_field = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
+                print(education_field)
+            elif current_user.role == "Student":
+                education_field = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
+            if education_field:
+                print('there')
+                if current_user.role == "Host":
+                    education_field.internship_id = s_h_id
+                elif current_user.role == "Student":
+                    education_field.student_id = s_h_id
+                education_field.character = form.character.data
+                education_field.character_flex = form.character_flex.data
+                education_field.interpersonal_skills = form.interpersonal_skills.data
+                education_field.interpersonal_flex = form.interpersonal_flex.data
+                education_field.time_management_skills = form.time_management_skills.data
+                education_field.time_management_flex = form.time_management_flex.data
+                education_field.teaching_qualification = form.teaching_qualification.data
+                education_field.teaching_qualification_flex = form.teaching_qualification_flex.data
+                education_field.years_experience = form.years_experience.data
+                education_field.years_experience_flex = form.years_experience_flex.data
+                education_field.language_requirement = form.language_requirement.data
+                education_field.language_requirement_flex = form.language_requirement_flex.data
+                education_field.teaching_field = form.teaching_field.data
+                education_field.teaching_field_flex = form.teaching_field_flex.data
+                education_field.monitor_experience = form.monitor_experience.data
+                education_field.monitor_flex = form.monitor_flex.data
+                education_field.assess_experience = form.assess_experience.data
+                education_field.assess_flex = form.assess_flex.data
+                education_field.teaching_strategies = form.teaching_strategies.data
+                education_field.teaching_strategies_flex = form.teaching_strategies_flex.data
+                education_field.literacy_numeracy_skills = form.literacy_numeracy_skills.data
+                education_field.literacy_numeracy_flex = form.literacy_numeracy_flex.data
+                education_field.address_adult_language = form.address_adult_language.data
+                education_field.address_adult_language_flex = form.address_adult_language_flex.data
+
+            else:
+                if current_user.role == "Host":
+                    # print("there none")
+                    education_field = EducationFieldDb()
+                    education_field.internship_id = s_h_id
+                    education_field.category_name = category
+                elif current_user.role == "Student":
+                    education_field = UEducationFieldDb()
+                    education_field.student_id = s_h_id
+                    education_field.category_name = category
+                education_field.character = form.character.data
+                education_field.character_flex = form.character_flex.data
+                education_field.interpersonal_skills = form.interpersonal_skills.data
+                education_field.interpersonal_flex = form.interpersonal_flex.data
+                education_field.time_management_skills = form.time_management_skills.data
+                education_field.time_management_flex = form.time_management_flex.data
+                education_field.teaching_qualification = form.teaching_qualification.data
+                education_field.teaching_qualification_flex = form.teaching_qualification_flex.data
+                education_field.years_experience = form.years_experience.data
+                education_field.years_experience_flex = form.years_experience_flex.data
+                education_field.language_requirement = form.language_requirement.data
+                education_field.language_requirement_flex = form.language_requirement_flex.data
+                education_field.teaching_field = form.teaching_field.data
+                education_field.teaching_field_flex = form.teaching_field_flex.data
+                education_field.monitor_experience = form.monitor_experience.data
+                education_field.monitor_flex = form.monitor_flex.data
+                education_field.assess_experience = form.assess_experience.data
+                education_field.assess_flex = form.assess_flex.data
+                education_field.teaching_strategies = form.teaching_strategies.data
+                education_field.teaching_strategies_flex = form.teaching_strategies_flex.data
+                education_field.literacy_numeracy_skills = form.literacy_numeracy_skills.data
+                education_field.literacy_numeracy_flex = form.literacy_numeracy_flex.data
+                education_field.address_adult_language = form.address_adult_language.data
+                education_field.address_adult_language_flex = form.address_adult_language_flex.data
+                db.session.add(education_field)
+            it_field1 = None
+            engineer_field1 = None
+            if current_user.role == "Host":
+                it_field1 = ItFieldDb.query.filter_by(internship_id=s_h_id).first()
+                engineer_field1 = EngineerFieldDb.query.filter_by(internship_id=s_h_id).first()
+            elif current_user.role == "Student":
+                it_field1 = UItFieldDb.query.filter_by(student_id=s_h_id).first()
+                engineer_field1 = UEngineerFieldDb.query.filter_by(student_id=s_h_id).first()
+            if it_field1:
+                db.session.delete(it_field1)
+            if engineer_field1:
+                db.session.delete(engineer_field1)
+            db.session.commit()
+            flash('Data have been saved')
+            # print(Internship.query.filter_by(id=internship_id).all())
+            if current_user.role == "Host":
+                hostname = Internship.query.filter_by(id=s_h_id).first()
+                hostname = str(hostname)
+                # print(hostname)
+                requirements = Internship.query.filter_by(hostname=hostname).all()
+                return render_template('internship_requirement.html', requirements=requirements)
+            elif current_user.role == "Student":
+                return redirect(url_for('confirm_information'))
+        elif form.back.data and form.validate_on_submit():
+            if current_user.role == "Host":
+                previous_req = Internship.query.filter_by(id=s_h_id).first()
+                return redirect(url_for('save_host_req', intern_name=previous_req.internship_name))
+            elif current_user.role == "Student":
+                return redirect(url_for('edit_profile'))
+        elif request.method == "GET":
+            education_field = None
+            if current_user.role == "Host":
+                education_field = EducationFieldDb.query.filter_by(internship_id=s_h_id).first()
+            elif current_user.role == "Student":
+                education_field = UEducationFieldDb.query.filter_by(student_id=s_h_id).first()
+            if education_field:
+                form.character.data = education_field.character
+                form.character_flex.data = education_field.character_flex
+                form.interpersonal_skills.data = education_field.interpersonal_skills
+                form.interpersonal_flex.data = education_field.interpersonal_flex
+                form.time_management_skills.data = education_field.time_management_skills
+                form.time_management_flex.data = education_field.time_management_flex
+                form.teaching_qualification.data = education_field.teaching_qualification
+                form.teaching_qualification_flex.data = education_field.teaching_qualification_flex
+                form.years_experience.data = education_field.years_experience
+                form.years_experience_flex.data = education_field.years_experience_flex
+                form.language_requirement.data = education_field.language_requirement
+                form.language_requirement_flex.data = education_field.language_requirement_flex
+                form.teaching_field.data = education_field.teaching_field
+                form.teaching_field_flex.data = education_field.teaching_field_flex
+                form.monitor_experience.data = education_field.monitor_experience
+                form.monitor_flex.data = education_field.monitor_flex
+                form.assess_experience.data = education_field.assess_experience
+                form.assess_flex.data = education_field.assess_flex
+                form.teaching_strategies.data = education_field.teaching_strategies
+                form.teaching_strategies_flex.data = education_field.teaching_strategies_flex
+                form.literacy_numeracy_skills.data = education_field.literacy_numeracy_skills
+                form.literacy_numeracy_flex.data = education_field.literacy_numeracy_flex
+                form.address_adult_language.data = education_field.address_adult_language
+                form.address_adult_language_flex.data = education_field.address_adult_language_flex
+            if current_user.role == "Host":
+                return render_template('host_it_field.html', form=form)
+            elif current_user.role == "Student":
+                return render_template('student_it_field.html', form=form)
+        '''
 
 
-'''
-@app.route('/invite/<req_id>',methods=['GET', 'POST'])
-@login_required
-def invite(req_id):
-    host_req = 
-'''
-
-
+# Internship category cascade selection
+# Filter data from the read-only database
 @app.route('/host_internship_category/<field>', methods=['GET', 'POST'])
 def host_internship_category(field):
     internship_categories = InternshipCategory.query.filter_by(field_category=field).all()
@@ -1623,6 +1579,8 @@ def host_internship_category(field):
     return jsonify({'internship_categories': internshipArray})
 
 
+# State cascade selection
+# Filter data from the read-only database
 @app.route('/nation_state/<nation>', methods=['GET', 'POST'])
 def nation_state(nation):
     states = State.query.filter_by(nation=nation).all()
@@ -1635,6 +1593,8 @@ def nation_state(nation):
     return jsonify({'states': statesArray})
 
 
+# City cascade selection
+# Filter data from the read-only database
 @app.route('/state_city/<state>', methods=['GET', 'POST'])
 def state_city(state):
     cities = City.query.filter_by(state=state).all()
