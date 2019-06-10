@@ -6,12 +6,12 @@ Supervisor:       Prof. Richard Sinnott
 Project Manager:  Prof. Lea Campbell  
 Author:           Shiqi Wang, Mingyuan Cui  
   
+    
+Our presentation video:    
+https://drive.google.com/file/d/14lO3wrx0y_MXyDCsqcKEYHdaTcAkpS0C/view?usp=sharing    
   
-Our presentation video:  
-https://drive.google.com/file/d/14lO3wrx0y_MXyDCsqcKEYHdaTcAkpS0C/view?usp=sharing  
-  
-Our presentation slides:
-https://drive.google.com/file/d/1BTHaPaJPSbmw2ccWBMTkYz4RtS6e7t3T/view?usp=sharing  
+Our presentation slides:  
+https://drive.google.com/file/d/1BTHaPaJPSbmw2ccWBMTkYz4RtS6e7t3T/view?usp=sharing    
   
 Running Environment:  
 Armin, R. (2010). The Python micro framework for building web applications.  
