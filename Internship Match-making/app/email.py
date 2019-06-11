@@ -1,3 +1,4 @@
+# This is the interface for some email related future work.
 from threading import Thread
 from flask import render_template
 from flask_mail import Message
