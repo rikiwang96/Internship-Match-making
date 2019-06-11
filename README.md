@@ -26,7 +26,7 @@ The structure of the code:  <br>
 >>emails and tasks: interfaces for some potential future work (automatically sending emails, etc)  <br>
 >>__init__.py: all the dependencies are listed here, and doing some configration before running the system.  <br>
   
->files: uploaded fileshere, (the CVs of the students). The "AceStream.pdf" is a test, please ignore it.<br>
+>files: uploaded file shere, (the CVs of the students). The "AceStream.pdf" is a test, please ignore it.<br>
 >migrations: deals the migrated databases, this is used to decrease coupling. <br>
 >logs: logs are here <br>  
   
