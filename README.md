@@ -13,6 +13,34 @@ https://drive.google.com/file/d/14lO3wrx0y_MXyDCsqcKEYHdaTcAkpS0C/view?usp=shari
 Our presentation slides:  
 https://drive.google.com/file/d/1BTHaPaJPSbmw2ccWBMTkYz4RtS6e7t3T/view?usp=sharing    
   
+The structure of the code:  
+Folders:  
+    app: core code here:   
+        routes.py: for running logic (jumping between pages, functions, parsing the forms)    
+        forms.py: all forms used in the webpages are defined here  
+        models.py: this class has the same structure as the tables in the database ("app.db")  
+        The three clases above are the most important classes in this project.  
+        
+        Folder: templates  
+            all frontend webpages are defined here.  
+              
+        emails and tasks: interfaces for some potential future work (automatically sending emails, etc)  
+        __init__.py: all the dependencies are listed here, and doing some configration before running the system.  
+        
+    files: uploaded files are stored here, for example, the CVs of the students. The "AceStream.pdf" is the result of a test, please   
+           ignore it.  
+      
+    migrations: deals the migrated databases, this is used to decrease coupling, because there is no database creation script (sql) in 
+                this system.   
+    
+    logs: logs are here  
+
+Other files:  
+    config.py for configrations, settings.py for settings, run.py for running the system.    
+
+How to run the system:  
+Please execute "run.py" with no argument. (Please install the packages needed first, as listed below or have a look at "__init__.py")  
+    
 Running Environment:  
 Armin, R. (2010). The Python micro framework for building web applications.  
 Retrieved from: https://github.com/pallets/flask  
