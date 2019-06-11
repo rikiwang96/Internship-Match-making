@@ -20,7 +20,6 @@ The structure of the code:  <br>
 >>forms.py: all forms used in the webpages are defined here   
 >>models.py: this class has the same structure as the tables in the database ("app.db")  <br>
 >>The three clases above are the most important classes in this project.  <br>
-  
 >>Folder: templates  
 >>>all frontend webpages are defined here.  <br>
   
@@ -31,7 +30,7 @@ The structure of the code:  <br>
 >migrations: deals the migrated databases, this is used to decrease coupling. <br>
 >logs: logs are here <br>  
   
-Other files:  <br>
+>Other files:  <br>
 >config.py for configrations, settings.py for settings, run.py for running the system.   <br> 
     
 How to run the system:    <br>
