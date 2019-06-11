@@ -35,30 +35,31 @@ The structure of the code:  <br>
 How to run the system:    <br>
 Please execute "run.py" with no argument. (Please install the packages needed first, as listed below or have a look at "__init__.py")    
     <br>  
+      
 Running Environment:  <br>
 Armin, R. (2010). The Python micro framework for building web applications.  
-Retrieved from: https://github.com/pallets/flask  
-  <br>
+Retrieved from: https://github.com/pallets/flask   
+  
 Asif Saif, U. (2009). Celery. Retrieved from:  
 http://flask.pocoo.org/docs/1.0/patterns/celery/  
-  <br>
+  
 Hsiaoming, Y. (2010). Flask-WTF. Retrieved from:  
 https://flask-wtf.readthedocs.io/en/stable/   
-  <br>
+  
 Kush, T. (2010). Flask-SQLAlchemy. Retrieved from:   
 https://github.com/pallets/flask-sqlalchemy  
-  <br>
+  
 Marc, B. (2012). Flask-Bootstrap. Retrieved from:   
 https://pythonhosted.org/Flask-Bootstrap/  
-  <br>
+  
 Max, C. (2013). Flask-Login. Retrieved from:  
 https://flask-login.readthedocs.io/en/latest/  
-  <br>
+  
 Miguel G. (2013). Flask-Migrate. Retrieved from:   
 https://flask-migrate.readthedocs.io/en/latest/  
-   <br>
+   
 Miguel, G. (2014). Flask-Moment. Reteieved from:   
 https://github.com/miguelgrinberg/Flask-Moment  
-  <br>  
+   
 
 
