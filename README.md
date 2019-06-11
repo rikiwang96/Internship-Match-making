@@ -1,5 +1,5 @@
 # Internship Match-making
-2019 Semester 1: COMP90055 Computing Project(25 credits)
+2019 Semester 1: COMP90055 Computing Project (25 credits)
   
   
 Supervisor:       Prof. Richard Sinnott  
@@ -20,8 +20,8 @@ The structure of the code:  <br>
 >>forms.py: all forms used in the webpages are defined here   
 >>models.py: this class has the same structure as the tables in the database ("app.db")  <br>
 >>The three clases above are the most important classes in this project.  <br>
->>Folder: templates  
->>>all frontend webpages are defined here.  <br>
+>>Folder: templates    
+>>>all frontend webpages are defined here.  
   
 >>emails and tasks: interfaces for some potential future work (automatically sending emails, etc)  <br>
 >>__init__.py: all the dependencies are listed here, and doing some configration before running the system.  <br>
