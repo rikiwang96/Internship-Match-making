@@ -14,8 +14,8 @@ Our presentation slides:  <br>
 https://drive.google.com/file/d/1BTHaPaJPSbmw2ccWBMTkYz4RtS6e7t3T/view?usp=sharing    
   
 The structure of the code:  <br>
->Folders:  <br>
-    >>app: core code here:   
+Folders:  <br>
+    >app: core code here:   
         >>>routes.py: for running logic (jumping between pages, functions, parsing the forms)  <br>    
         >>>forms.py: all forms used in the webpages are defined here  <br>
         >>>models.py: this class has the same structure as the tables in the database ("app.db")  <br>
@@ -25,15 +25,15 @@ The structure of the code:  <br>
         >>>emails and tasks: interfaces for some potential future work (automatically sending emails, etc)  <br>
         >>>__init__.py: all the dependencies are listed here, and doing some configration before running the system.  <br>
         <br>
-    >>files: uploaded files are stored here, for example, the CVs of the students. The "AceStream.pdf" is a test, please ignore it.<br>
-    >>migrations: deals the migrated databases, this is used to decrease coupling. <br>
-    >>logs: logs are here <br>  
+    >files: uploaded files are stored here, for example, the CVs of the students. The "AceStream.pdf" is a test, please ignore it.<br>
+    >migrations: deals the migrated databases, this is used to decrease coupling. <br>
+    >logs: logs are here <br>  
      <br>
 >Other files:  <br>
     >>config.py for configrations, settings.py for settings, run.py for running the system.   <br> 
     <br>  
 How to run the system:    <br>
-Please execute "run.py" with no argument. (Please install the packages needed first, as listed below or have a look at "__init__.py")    
+>Please execute "run.py" with no argument. (Please install the packages needed first, as listed below or have a look at "__init__.py")   
     <br>  
       
 Running Environment:  <br>
